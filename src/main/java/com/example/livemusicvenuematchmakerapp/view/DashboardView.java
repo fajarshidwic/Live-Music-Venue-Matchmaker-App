@@ -152,7 +152,6 @@ public class DashboardView {
         double income = 0.0;
         double commission = 0.0;
 
-        // Prepare chart data: if both are zero, display a fallback slice
         ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
         if (income == 0 && commission == 0) {
             chartData.add(new PieChart.Data("No Data", 1));
@@ -161,24 +160,18 @@ public class DashboardView {
             chartData.add(new PieChart.Data("Income", income));
         }
 
-        // Create the PieChart using the prepared data
         PieChart commissionChart = new PieChart(chartData);
         commissionChart.setTitle("Commission & Income Preview");
-        // Bind the chart's width and height so that it scales with the chartsPane
         commissionChart.prefWidthProperty().bind(chartsPane.widthProperty().divide(2).subtract(20));
         commissionChart.prefHeightProperty().bind(chartsPane.heightProperty());
 
         chartsPane.getChildren().add(commissionChart);
 
-        // --- Tables Region (Bottom) ---
-        // Use a GridPane to display compact previews for all table-based entities.
         GridPane tablesGrid = new GridPane();
         tablesGrid.setHgap(20);
         tablesGrid.setVgap(20);
         tablesGrid.setPadding(new Insets(20));
 
-        // Create compact previews using our helper method.
-        // For Venue, use actual data from controller.getAllVenues(); for others, use empty lists.
         VBox venuePreview = createTablePreview(
                 "Venues Preview",
                 new String[]{"Name", "Capacity", "Category"},
@@ -190,7 +183,6 @@ public class DashboardView {
         VBox orderPreview = createTablePreview("Orders Preview", new String[]{"Order ID", "Booking ID", "Commission"}, FXCollections.observableArrayList());
         VBox clientPreview = createTablePreview("Clients Preview", new String[]{"Client Name"}, FXCollections.observableArrayList());
 
-        // Arrange previews in a 2-column grid.
         tablesGrid.add(venuePreview, 0, 0);
         tablesGrid.add(requestPreview, 1, 0);
         tablesGrid.add(eventPreview, 0, 1);
@@ -198,7 +190,6 @@ public class DashboardView {
         tablesGrid.add(orderPreview, 0, 2);
         tablesGrid.add(clientPreview, 1, 2);
 
-        // Make each preview cell grow with available space.
         for (Node node : tablesGrid.getChildren()) {
             GridPane.setHgrow(node, Priority.ALWAYS);
             GridPane.setVgrow(node, Priority.ALWAYS);
@@ -220,16 +211,12 @@ public class DashboardView {
         header.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
         TableView table = new TableView();
-        // Create columns dynamically based on the provided column names.
         for (String colName : columns) {
             TableColumn column = new TableColumn(colName);
-            // For placeholder purposes, assume property names are lower-case with no spaces.
             column.setCellValueFactory(new PropertyValueFactory<>(colName.toLowerCase().replace(" ", "")));
             table.getColumns().add(column);
         }
-        // Set the provided data (actual data for Venues; empty for others)
         table.setItems(data);
-        // Allow the table to grow with its container.
         VBox.setVgrow(table, Priority.ALWAYS);
 
         previewContainer.getChildren().addAll(header, table);
@@ -434,9 +421,8 @@ public class DashboardView {
         TableView table = new TableView();
         TableColumn clientNameCol = new TableColumn("Client Name");
         clientNameCol.setCellValueFactory(new PropertyValueFactory<>("clientName"));
-        // Additional columns can be added if needed.
         table.getColumns().addAll(clientNameCol);
-        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+        table.setItems(FXCollections.observableArrayList());
 
         VBox.setVgrow(table, Priority.ALWAYS);
         container.getChildren().addAll(header, table);
@@ -454,7 +440,6 @@ public class DashboardView {
         if ("manager".equalsIgnoreCase(loggedInUser.getRole())) {
             TabPane tabPane = new TabPane();
 
-            // "Create User" tab.
             Tab createUserTab = new Tab("Create User");
             VBox createUserPanel = new VBox(10);
             createUserPanel.setPadding(new Insets(10));
@@ -470,12 +455,10 @@ public class DashboardView {
             TextField txtLastName = new TextField();
             txtLastName.setPromptText("Last Name");
 
-            // Role selection: ComboBox for choosing Staff or Manager.
             ComboBox<String> cmbRole = new ComboBox<>();
             cmbRole.getItems().addAll("Staff", "Manager");
             cmbRole.setValue("Staff");
 
-            // Secret pin field (visible only when "Manager" is selected).
             TextField txtSecretPin = new TextField();
             txtSecretPin.setPromptText("Secret Auth Pin (for Manager role)");
             txtSecretPin.setVisible(false);
@@ -503,7 +486,7 @@ public class DashboardView {
                 newUser.setFirstName(txtFirstName.getText());
                 newUser.setLastName(txtLastName.getText());
                 newUser.setRole(cmbRole.getValue().toLowerCase());
-                boolean success = controller.createStaffAccount(newUser); // Reusing createStaffAccount for new user creation.
+                boolean success = controller.createStaffAccount(newUser);
                 if (success) {
                     lblCreateUserMsg.setText("User account created successfully!");
                 } else {
@@ -514,14 +497,12 @@ public class DashboardView {
             createUserPanel.getChildren().addAll(createUserTitle, txtUsername, txtPassword, txtFirstName, txtLastName, cmbRole, txtSecretPin, btnCreateUser, lblCreateUserMsg);
             createUserTab.setContent(createUserPanel);
 
-            // "Manage Users" tab.
             Tab manageUsersTab = new Tab("Manage Users");
             VBox manageUserPanel = new VBox(10);
             manageUserPanel.setPadding(new Insets(10));
             Label manageUserTitle = new Label("Manage Existing User Accounts");
             manageUserTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-            // TableView for listing users.
             TableView<User> userTable = new TableView<>();
             TableColumn<User, String> usernameCol = new TableColumn<>("Username");
             usernameCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getUsername()));
@@ -534,7 +515,6 @@ public class DashboardView {
             userTable.getColumns().addAll(usernameCol, firstNameCol, lastNameCol, roleCol);
             userTable.setItems(FXCollections.observableArrayList(controller.getAllUsers()));
 
-            // Actions for managing users.
             HBox userActions = new HBox(10);
             Button btnDeleteUser = new Button("Delete User");
             Button btnUpgradeUser = new Button("Upgrade to Manager");
@@ -592,7 +572,6 @@ public class DashboardView {
             tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
             return tabPane;
         } else {
-            // Staff view: Update Profile functionality.
             VBox profilePanel = new VBox(10);
             profilePanel.setPadding(new Insets(10));
             Label title = new Label("Update Profile");
