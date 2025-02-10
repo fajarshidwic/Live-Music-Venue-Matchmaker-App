@@ -22,4 +22,14 @@ public class DashboardController {
     public boolean createStaffAccount(User user) {
         return UserDAO.createStaffUser(user);
     }
+
+    public List<User> getAllUsers() { return UserDAO.getAllUsers(); }
+
+    public boolean updateUser(User user) { return UserDAO.updateUser(user); }
+
+    public boolean deleteUser(String username) { return UserDAO.deleteUser(username); }
+
+    public boolean upgradeUser(String username) { return UserDAO.upgradeUser(username); }
+
+    public boolean updateProfile(User user) { return UserDAO.updateProfile(user); }
 }

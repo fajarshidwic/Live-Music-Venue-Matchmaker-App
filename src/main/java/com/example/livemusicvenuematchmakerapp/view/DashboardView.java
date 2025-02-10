@@ -7,13 +7,21 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
+
+import java.util.List;
 
 public class DashboardView {
     private BorderPane root;
@@ -36,16 +44,25 @@ public class DashboardView {
 
     private void createAndConfigureUI() {
         root = new BorderPane();
-        root.setPadding(new Insets(10));
+        root.setPadding(new Insets(0, 10, 0, 0));
 
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(20));
-        sidebar.setStyle("-fx-background-color: #2c3e50;");
+        VBox sidebar = new VBox();
+        sidebar.setPrefWidth(200);
+        sidebar.prefHeightProperty().bind(root.heightProperty());
 
-        Label headerLabel = new Label("LMVM Dashboard");
-        headerLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ecf0f1;");
-        headerLabel.setAlignment(Pos.CENTER);
-        headerLabel.setMaxWidth(Double.MAX_VALUE);
+        Image logoImage = new Image(getClass().getResourceAsStream("/com/example/livemusicvenuematchmakerapp/images/logo.png"));
+        ImageView logoImageView = new ImageView(logoImage);
+        logoImageView.setFitWidth(150);
+        logoImageView.setPreserveRatio(true);
+        StackPane logoContainer = new StackPane(logoImageView);
+        logoContainer.setPrefHeight(100); // Upper half fixed height
+        logoContainer.setStyle("-fx-background-color: white;");
+
+        VBox navContainer = new VBox(10);
+        navContainer.setPadding(new Insets(20));
+        String navColor = "manager".equalsIgnoreCase(loggedInUser.getRole()) ? "#e74c3c" : "#2c3e50";
+        navContainer.setStyle("-fx-background-color: " + navColor + ";");
+        navContainer.setAlignment(Pos.TOP_CENTER);
 
         Line separator = new Line(0, 0, 150, 0);
         separator.setStroke(Color.web("#ecf0f1"));
@@ -53,30 +70,41 @@ public class DashboardView {
         Button btnDashboard = createSidebarButton("Dashboard");
         Button btnEvents = createSidebarButton("Events");
         Button btnVenues = createSidebarButton("Venues");
+        Button btnRequests = createSidebarButton("Requests");
         Button btnBooking = createSidebarButton("Booking");
+        Button btnOrders = createSidebarButton("Orders");
+        Button btnClients = createSidebarButton("Clients");
         Button btnData = createSidebarButton("Data");
         Button btnAccount = createSidebarButton("Account");
         Button btnReports = createSidebarButton("Reports");
         Button btnLogout = createSidebarButton("Logout");
 
         btnDashboard.setOnAction(e -> setMainContent(createDashboardOverview()));
-        btnEvents.setOnAction(e -> setMainContent(createEventsPanel()));
-        btnVenues.setOnAction(e -> setMainContent(createVenuesPanel()));
-        btnBooking.setOnAction(e -> setMainContent(createBookingPanel()));
-        btnData.setOnAction(e -> setMainContent(createDataPanel()));
-        btnAccount.setOnAction(e -> setMainContent(createAccountPanel()));
-        btnReports.setOnAction(e -> setMainContent(createReportsPanel()));
+        btnEvents.setOnAction(e -> setMainContent(createEventPage()));
+        btnVenues.setOnAction(e -> setMainContent(createVenuePage()));
+        btnRequests.setOnAction(e -> setMainContent(createRequestPage()));
+        btnBooking.setOnAction(e -> setMainContent(createBookingPage()));
+        btnOrders.setOnAction(e -> setMainContent(createOrderPage()));
+        btnClients.setOnAction(e -> setMainContent(createClientPage()));
+        btnData.setOnAction(e -> setMainContent(createDataPage()));
+        btnAccount.setOnAction(e -> setMainContent(createAccountPage()));
+        btnReports.setOnAction(e -> setMainContent(createReportPage()));
         btnLogout.setOnAction(e -> {
             if (onLogout != null) {
                 onLogout.handle();
             }
         });
 
-        sidebar.getChildren().addAll(headerLabel, separator,
-                btnDashboard, btnEvents, btnVenues, btnBooking, btnData, btnAccount, btnReports,
-                btnLogout);
+        navContainer.getChildren().addAll(separator, btnDashboard, btnEvents, btnVenues,
+                btnBooking, btnOrders, btnClients, btnData, btnAccount, btnReports, btnLogout);
+
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        navContainer.getChildren().add(spacer);
+        VBox.setVgrow(navContainer, Priority.ALWAYS);
+
+        sidebar.getChildren().addAll(logoContainer, navContainer);
         sidebar.setAlignment(Pos.TOP_CENTER);
-        sidebar.setPrefWidth(200);
         root.setLeft(sidebar);
 
         mainContentPane.getChildren().clear();
@@ -114,20 +142,129 @@ public class DashboardView {
     }
 
     private Parent createDashboardOverview() {
-        Label label = new Label("Dashboard Overview: Welcome " + loggedInUser.getFirstName());
-        StackPane pane = new StackPane(label);
-        pane.setStyle("-fx-background-color: #ecf0f1;");
-        return pane;
+        VBox dashboardOverview = new VBox(20);
+        dashboardOverview.setPadding(new Insets(20));
+
+        HBox chartsPane = new HBox(20);
+        chartsPane.setAlignment(Pos.CENTER);
+        chartsPane.setPrefHeight(200);
+
+        double income = 0.0;
+        double commission = 0.0;
+
+        // Prepare chart data: if both are zero, display a fallback slice
+        ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
+        if (income == 0 && commission == 0) {
+            chartData.add(new PieChart.Data("No Data", 1));
+        } else {
+            chartData.add(new PieChart.Data("Commission", commission));
+            chartData.add(new PieChart.Data("Income", income));
+        }
+
+        // Create the PieChart using the prepared data
+        PieChart commissionChart = new PieChart(chartData);
+        commissionChart.setTitle("Commission & Income Preview");
+        // Bind the chart's width and height so that it scales with the chartsPane
+        commissionChart.prefWidthProperty().bind(chartsPane.widthProperty().divide(2).subtract(20));
+        commissionChart.prefHeightProperty().bind(chartsPane.heightProperty());
+
+        chartsPane.getChildren().add(commissionChart);
+
+        // --- Tables Region (Bottom) ---
+        // Use a GridPane to display compact previews for all table-based entities.
+        GridPane tablesGrid = new GridPane();
+        tablesGrid.setHgap(20);
+        tablesGrid.setVgap(20);
+        tablesGrid.setPadding(new Insets(20));
+
+        // Create compact previews using our helper method.
+        // For Venue, use actual data from controller.getAllVenues(); for others, use empty lists.
+        VBox venuePreview = createTablePreview(
+                "Venues Preview",
+                new String[]{"Name", "Capacity", "Category"},
+                FXCollections.observableArrayList(controller.getAllVenues())
+        );
+        VBox requestPreview = createTablePreview("Requests Preview", new String[]{"Client", "Title", "Date"}, FXCollections.observableArrayList());
+        VBox eventPreview = createTablePreview("Events Preview", new String[]{"Event ID", "Title", "Date"}, FXCollections.observableArrayList());
+        VBox bookingPreview = createTablePreview("Bookings Preview", new String[]{"Booking ID", "Event ID", "Venue Name"}, FXCollections.observableArrayList());
+        VBox orderPreview = createTablePreview("Orders Preview", new String[]{"Order ID", "Booking ID", "Commission"}, FXCollections.observableArrayList());
+        VBox clientPreview = createTablePreview("Clients Preview", new String[]{"Client Name"}, FXCollections.observableArrayList());
+
+        // Arrange previews in a 2-column grid.
+        tablesGrid.add(venuePreview, 0, 0);
+        tablesGrid.add(requestPreview, 1, 0);
+        tablesGrid.add(eventPreview, 0, 1);
+        tablesGrid.add(bookingPreview, 1, 1);
+        tablesGrid.add(orderPreview, 0, 2);
+        tablesGrid.add(clientPreview, 1, 2);
+
+        // Make each preview cell grow with available space.
+        for (Node node : tablesGrid.getChildren()) {
+            GridPane.setHgrow(node, Priority.ALWAYS);
+            GridPane.setVgrow(node, Priority.ALWAYS);
+        }
+
+        dashboardOverview.getChildren().addAll(chartsPane, tablesGrid);
+        VBox.setVgrow(tablesGrid, Priority.ALWAYS);
+
+        return dashboardOverview;
     }
 
-    private Parent createEventsPanel() {
-        Label label = new Label("Events Panel: List and details will be here.");
-        StackPane pane = new StackPane(label);
-        pane.setStyle("-fx-background-color: #ecf0f1;");
-        return pane;
+
+    private VBox createTablePreview(String headerText, String[] columns, ObservableList<?> data) {
+        VBox previewContainer = new VBox(5);
+        previewContainer.setPadding(new Insets(10));
+        previewContainer.setStyle("-fx-background-color: #ffffff; -fx-border-color: #dcdcdc; -fx-border-radius: 5; -fx-background-radius: 5;");
+
+        Label header = new Label(headerText);
+        header.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        TableView table = new TableView();
+        // Create columns dynamically based on the provided column names.
+        for (String colName : columns) {
+            TableColumn column = new TableColumn(colName);
+            // For placeholder purposes, assume property names are lower-case with no spaces.
+            column.setCellValueFactory(new PropertyValueFactory<>(colName.toLowerCase().replace(" ", "")));
+            table.getColumns().add(column);
+        }
+        // Set the provided data (actual data for Venues; empty for others)
+        table.setItems(data);
+        // Allow the table to grow with its container.
+        VBox.setVgrow(table, Priority.ALWAYS);
+
+        previewContainer.getChildren().addAll(header, table);
+        return previewContainer;
     }
 
-    private Parent createVenuesPanel() {
+
+    private Parent createEventPage() {
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        Label header = new Label("Events");
+        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        TableView table = new TableView();
+        TableColumn eventIdCol = new TableColumn("Event ID");
+        eventIdCol.setCellValueFactory(new PropertyValueFactory<>("eventId"));
+        TableColumn titleCol = new TableColumn("Title");
+        titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
+        TableColumn artistCol = new TableColumn("Main Artist");
+        artistCol.setCellValueFactory(new PropertyValueFactory<>("mainArtist"));
+        TableColumn dateCol = new TableColumn("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn timeCol = new TableColumn("Time");
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
+        TableColumn venueCol = new TableColumn("Venue");
+        venueCol.setCellValueFactory(new PropertyValueFactory<>("venue"));
+        table.getColumns().addAll(eventIdCol, titleCol, artistCol, dateCol, timeCol, venueCol);
+        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+
+        VBox.setVgrow(table, Priority.ALWAYS);
+        container.getChildren().addAll(header, table);
+        return container;
+    }
+
+    private Parent createVenuePage() {
         VBox venuePanel = new VBox(10);
         venuePanel.setPadding(new Insets(10));
 
@@ -205,34 +342,291 @@ public class DashboardView {
         return venuePanel;
     }
 
-    private Parent createBookingPanel() {
-        Label label = new Label("Booking Panel: Hire and cancel bookings here.");
-        StackPane pane = new StackPane(label);
-        pane.setStyle("-fx-background-color: #ecf0f1;");
-        return pane;
+    private Parent createRequestPage() {
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        Label header = new Label("Requests");
+        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        TableView table = new TableView();
+        TableColumn clientCol = new TableColumn("Client");
+        clientCol.setCellValueFactory(new PropertyValueFactory<>("client"));
+        TableColumn titleCol = new TableColumn("Title");
+        titleCol.setCellValueFactory(new PropertyValueFactory<>("title"));
+        TableColumn artistCol = new TableColumn("Artist");
+        artistCol.setCellValueFactory(new PropertyValueFactory<>("artist"));
+        TableColumn dateCol = new TableColumn("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn timeCol = new TableColumn("Time");
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
+        TableColumn durationCol = new TableColumn("Duration");
+        durationCol.setCellValueFactory(new PropertyValueFactory<>("duration"));
+        TableColumn audienceCol = new TableColumn("Target Audience");
+        audienceCol.setCellValueFactory(new PropertyValueFactory<>("targetAudience"));
+        TableColumn typeCol = new TableColumn("Type");
+        typeCol.setCellValueFactory(new PropertyValueFactory<>("type"));
+        TableColumn categoryCol = new TableColumn("Category");
+        categoryCol.setCellValueFactory(new PropertyValueFactory<>("category"));
+        table.getColumns().addAll(clientCol, titleCol, artistCol, dateCol, timeCol, durationCol, audienceCol, typeCol, categoryCol);
+        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+
+        VBox.setVgrow(table, Priority.ALWAYS);
+        container.getChildren().addAll(header, table);
+        return container;
     }
 
-    private Parent createDataPanel() {
+    private Parent createBookingPage() {
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        Label header = new Label("Bookings");
+        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        TableView table = new TableView();
+        TableColumn bookingIdCol = new TableColumn("Booking ID");
+        bookingIdCol.setCellValueFactory(new PropertyValueFactory<>("bookingId"));
+        TableColumn eventIdCol = new TableColumn("Event ID");
+        eventIdCol.setCellValueFactory(new PropertyValueFactory<>("eventId"));
+        TableColumn venueCol = new TableColumn("Venue Name");
+        venueCol.setCellValueFactory(new PropertyValueFactory<>("venueName"));
+        TableColumn dateCol = new TableColumn("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
+        TableColumn timeCol = new TableColumn("Time");
+        timeCol.setCellValueFactory(new PropertyValueFactory<>("time"));
+        TableColumn durationCol = new TableColumn("Duration");
+        durationCol.setCellValueFactory(new PropertyValueFactory<>("duration"));
+        table.getColumns().addAll(bookingIdCol, eventIdCol, venueCol, dateCol, timeCol, durationCol);
+        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+
+        VBox.setVgrow(table, Priority.ALWAYS);
+        container.getChildren().addAll(header, table);
+        return container;
+    }
+
+    private Parent createOrderPage() {
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        Label header = new Label("Orders");
+        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        TableView table = new TableView();
+        TableColumn orderIdCol = new TableColumn("Order ID");
+        orderIdCol.setCellValueFactory(new PropertyValueFactory<>("orderId"));
+        TableColumn bookingIdCol = new TableColumn("Booking ID");
+        bookingIdCol.setCellValueFactory(new PropertyValueFactory<>("bookingId"));
+        TableColumn commissionCol = new TableColumn("Commission");
+        commissionCol.setCellValueFactory(new PropertyValueFactory<>("commission"));
+        TableColumn totalCol = new TableColumn("Total");
+        totalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
+        table.getColumns().addAll(orderIdCol, bookingIdCol, commissionCol, totalCol);
+        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+
+        VBox.setVgrow(table, Priority.ALWAYS);
+        container.getChildren().addAll(header, table);
+        return container;
+    }
+
+    private Parent createClientPage() {
+        VBox container = new VBox(10);
+        container.setPadding(new Insets(10));
+        Label header = new Label("Clients");
+        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        TableView table = new TableView();
+        TableColumn clientNameCol = new TableColumn("Client Name");
+        clientNameCol.setCellValueFactory(new PropertyValueFactory<>("clientName"));
+        // Additional columns can be added if needed.
+        table.getColumns().addAll(clientNameCol);
+        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+
+        VBox.setVgrow(table, Priority.ALWAYS);
+        container.getChildren().addAll(header, table);
+        return container;
+    }
+
+    private Parent createDataPage() {
         Label label = new Label("Data Panel: Import CSVs and backup data here.");
         StackPane pane = new StackPane(label);
         pane.setStyle("-fx-background-color: #ecf0f1;");
         return pane;
     }
 
-    private Parent createAccountPanel() {
-        String panelText;
+    private Parent createAccountPage() {
         if ("manager".equalsIgnoreCase(loggedInUser.getRole())) {
-            panelText = "Accounts Panel: Manager account management features.";
+            TabPane tabPane = new TabPane();
+
+            // "Create User" tab.
+            Tab createUserTab = new Tab("Create User");
+            VBox createUserPanel = new VBox(10);
+            createUserPanel.setPadding(new Insets(10));
+            Label createUserTitle = new Label("Create New User Account");
+            createUserTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+            TextField txtUsername = new TextField();
+            txtUsername.setPromptText("Username");
+            PasswordField txtPassword = new PasswordField();
+            txtPassword.setPromptText("Password");
+            TextField txtFirstName = new TextField();
+            txtFirstName.setPromptText("First Name");
+            TextField txtLastName = new TextField();
+            txtLastName.setPromptText("Last Name");
+
+            // Role selection: ComboBox for choosing Staff or Manager.
+            ComboBox<String> cmbRole = new ComboBox<>();
+            cmbRole.getItems().addAll("Staff", "Manager");
+            cmbRole.setValue("Staff");
+
+            // Secret pin field (visible only when "Manager" is selected).
+            TextField txtSecretPin = new TextField();
+            txtSecretPin.setPromptText("Secret Auth Pin (for Manager role)");
+            txtSecretPin.setVisible(false);
+            cmbRole.setOnAction(e -> {
+                if ("Manager".equalsIgnoreCase(cmbRole.getValue())) {
+                    txtSecretPin.setVisible(true);
+                } else {
+                    txtSecretPin.setVisible(false);
+                }
+            });
+
+            Button btnCreateUser = new Button("Create User");
+            Label lblCreateUserMsg = new Label();
+
+            btnCreateUser.setOnAction(e -> {
+                if ("Manager".equalsIgnoreCase(cmbRole.getValue())) {
+                    if (!"909".equals(txtSecretPin.getText())) {
+                        lblCreateUserMsg.setText("Invalid secret pin for manager creation!");
+                        return;
+                    }
+                }
+                User newUser = new User();
+                newUser.setUsername(txtUsername.getText());
+                newUser.setPassword(txtPassword.getText());
+                newUser.setFirstName(txtFirstName.getText());
+                newUser.setLastName(txtLastName.getText());
+                newUser.setRole(cmbRole.getValue().toLowerCase());
+                boolean success = controller.createStaffAccount(newUser); // Reusing createStaffAccount for new user creation.
+                if (success) {
+                    lblCreateUserMsg.setText("User account created successfully!");
+                } else {
+                    lblCreateUserMsg.setText("Failed to create user account.");
+                }
+            });
+
+            createUserPanel.getChildren().addAll(createUserTitle, txtUsername, txtPassword, txtFirstName, txtLastName, cmbRole, txtSecretPin, btnCreateUser, lblCreateUserMsg);
+            createUserTab.setContent(createUserPanel);
+
+            // "Manage Users" tab.
+            Tab manageUsersTab = new Tab("Manage Users");
+            VBox manageUserPanel = new VBox(10);
+            manageUserPanel.setPadding(new Insets(10));
+            Label manageUserTitle = new Label("Manage Existing User Accounts");
+            manageUserTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+            // TableView for listing users.
+            TableView<User> userTable = new TableView<>();
+            TableColumn<User, String> usernameCol = new TableColumn<>("Username");
+            usernameCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getUsername()));
+            TableColumn<User, String> firstNameCol = new TableColumn<>("First Name");
+            firstNameCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getFirstName()));
+            TableColumn<User, String> lastNameCol = new TableColumn<>("Last Name");
+            lastNameCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getLastName()));
+            TableColumn<User, String> roleCol = new TableColumn<>("Role");
+            roleCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getRole()));
+            userTable.getColumns().addAll(usernameCol, firstNameCol, lastNameCol, roleCol);
+            userTable.setItems(FXCollections.observableArrayList(controller.getAllUsers()));
+
+            // Actions for managing users.
+            HBox userActions = new HBox(10);
+            Button btnDeleteUser = new Button("Delete User");
+            Button btnUpgradeUser = new Button("Upgrade to Manager");
+            Button btnUpdateUser = new Button("Update User");
+            Label lblManageMsg = new Label();
+            userActions.getChildren().addAll(btnDeleteUser, btnUpgradeUser, btnUpdateUser);
+
+            btnDeleteUser.setOnAction(e -> {
+                User selectedUser = userTable.getSelectionModel().getSelectedItem();
+                if (selectedUser != null) {
+                    boolean success = controller.deleteUser(selectedUser.getUsername());
+                    if (success) {
+                        lblManageMsg.setText("User deleted successfully.");
+                        userTable.setItems(FXCollections.observableArrayList(controller.getAllUsers()));
+                    } else {
+                        lblManageMsg.setText("Failed to delete user.");
+                    }
+                }
+            });
+
+            btnUpgradeUser.setOnAction(e -> {
+                User selectedUser = userTable.getSelectionModel().getSelectedItem();
+                if (selectedUser != null && "staff".equalsIgnoreCase(selectedUser.getRole())) {
+                    boolean success = controller.upgradeUser(selectedUser.getUsername());
+                    if (success) {
+                        lblManageMsg.setText("User upgraded to Manager.");
+                        userTable.setItems(FXCollections.observableArrayList(controller.getAllUsers()));
+                    } else {
+                        lblManageMsg.setText("Failed to upgrade user.");
+                    }
+                } else {
+                    lblManageMsg.setText("Select a staff user to upgrade.");
+                }
+            });
+
+            btnUpdateUser.setOnAction(e -> {
+                User selectedUser = userTable.getSelectionModel().getSelectedItem();
+                if (selectedUser != null) {
+                    // For demonstration, update the first name.
+                    selectedUser.setFirstName(selectedUser.getFirstName() + " Updated");
+                    boolean success = controller.updateUser(selectedUser);
+                    if (success) {
+                        lblManageMsg.setText("User updated successfully.");
+                        userTable.setItems(FXCollections.observableArrayList(controller.getAllUsers()));
+                    } else {
+                        lblManageMsg.setText("Failed to update user.");
+                    }
+                }
+            });
+
+            manageUserPanel.getChildren().addAll(manageUserTitle, userTable, userActions, lblManageMsg);
+            manageUsersTab.setContent(manageUserPanel);
+
+            tabPane.getTabs().addAll(createUserTab, manageUsersTab);
+            tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+            return tabPane;
         } else {
-            panelText = "Profile Panel: Update your account details.";
+            // Staff view: Update Profile functionality.
+            VBox profilePanel = new VBox(10);
+            profilePanel.setPadding(new Insets(10));
+            Label title = new Label("Update Profile");
+            title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+            PasswordField txtPassword = new PasswordField();
+            txtPassword.setPromptText("New Password");
+            TextField txtFirstName = new TextField();
+            txtFirstName.setPromptText("First Name");
+            TextField txtLastName = new TextField();
+            txtLastName.setPromptText("Last Name");
+            Button btnUpdateProfile = new Button("Update Profile");
+            Label lblUpdateMsg = new Label();
+
+            btnUpdateProfile.setOnAction(e -> {
+                User updatedUser = new User();
+                updatedUser.setUsername(loggedInUser.getUsername());
+                updatedUser.setPassword(txtPassword.getText());
+                updatedUser.setFirstName(txtFirstName.getText());
+                updatedUser.setLastName(txtLastName.getText());
+                boolean success = controller.updateProfile(updatedUser);
+                if (success) {
+                    lblUpdateMsg.setText("Profile updated successfully!");
+                } else {
+                    lblUpdateMsg.setText("Failed to update profile.");
+                }
+            });
+
+            profilePanel.getChildren().addAll(title, txtPassword, txtFirstName, txtLastName, btnUpdateProfile, lblUpdateMsg);
+            return profilePanel;
         }
-        Label label = new Label(panelText);
-        StackPane pane = new StackPane(label);
-        pane.setStyle("-fx-background-color: #ecf0f1;");
-        return pane;
     }
 
-    private Parent createReportsPanel() {
+    private Parent createReportPage() {
         Label label = new Label("Reports Panel: View summary, pie and bar charts here.");
         StackPane pane = new StackPane(label);
         pane.setStyle("-fx-background-color: #ecf0f1;");

@@ -6,6 +6,7 @@ module com.example.livemusicvenuematchmakerapp {
     requires org.kordamp.bootstrapfx.core;
     requires java.sql;
 
-    opens com.example.livemusicvenuematchmakerapp to javafx.fxml;
+    opens com.example.livemusicvenuematchmakerapp to javafx.basemanag;
+    opens com.example.livemusicvenuematchmakerapp.model to javafx.base;
     exports com.example.livemusicvenuematchmakerapp;
 }
