@@ -1,6 +1,8 @@
 package com.example.livemusicvenuematchmakerapp.view;
 
 import com.example.livemusicvenuematchmakerapp.controller.DashboardController;
+import com.example.livemusicvenuematchmakerapp.model.Event;
+import com.example.livemusicvenuematchmakerapp.model.Order;
 import com.example.livemusicvenuematchmakerapp.model.User;
 import com.example.livemusicvenuematchmakerapp.model.Venue;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -12,7 +14,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.chart.PieChart;
+import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
@@ -21,7 +23,9 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DashboardView {
     private BorderPane root;
@@ -158,22 +162,20 @@ public class DashboardView {
         chartsPane.setAlignment(Pos.CENTER);
         chartsPane.setPrefHeight(200);
 
-        double income = 0.0;
-        double commission = 0.0;
-
-        ObservableList<PieChart.Data> chartData = FXCollections.observableArrayList();
+        List<Order> orders = controller.getAllOrders();
+        double income = orders.stream().mapToDouble(Order::getTotal).sum();
+        double commission = orders.stream().mapToDouble(Order::getCommission).sum();
+        ObservableList<PieChart.Data> commissionChartData = FXCollections.observableArrayList();
         if (income == 0 && commission == 0) {
-            chartData.add(new PieChart.Data("No Data", 1));
+            commissionChartData.add(new PieChart.Data("No Data", 1));
         } else {
-            chartData.add(new PieChart.Data("Commission", commission));
-            chartData.add(new PieChart.Data("Income", income));
+            commissionChartData.add(new PieChart.Data("Commission", commission));
+            commissionChartData.add(new PieChart.Data("Income", income));
         }
-
-        PieChart commissionChart = new PieChart(chartData);
+        PieChart commissionChart = new PieChart(commissionChartData);
         commissionChart.setTitle("Commission & Income Preview");
         commissionChart.prefWidthProperty().bind(chartsPane.widthProperty().divide(2).subtract(20));
         commissionChart.prefHeightProperty().bind(chartsPane.heightProperty());
-
         chartsPane.getChildren().add(commissionChart);
 
         GridPane tablesGrid = new GridPane();
@@ -676,10 +678,53 @@ public class DashboardView {
     }
 
     private Parent createReportPage() {
-        Label label = new Label("Reports Panel: View summary, pie and bar charts here.");
-        StackPane pane = new StackPane(label);
-        pane.setStyle("-fx-background-color: #ecf0f1;");
-        return pane;
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(20));
+
+        PieChart venuePieChart = new PieChart();
+        venuePieChart.setTitle("Venue Utilization Percentage");
+        ObservableList<PieChart.Data> pieData = computeVenueUtilization();
+        venuePieChart.setData(pieData);
+
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setTitle("Income and Commission per Order");
+        xAxis.setLabel("Order ID");
+        yAxis.setLabel("Amount");
+
+        XYChart.Series<String, Number> incomeSeries = new XYChart.Series<>();
+        incomeSeries.setName("Income");
+
+        XYChart.Series<String, Number> commissionSeries = new XYChart.Series<>();
+        commissionSeries.setName("Commission");
+
+        List<Order> orders = controller.getAllOrders();
+        for (Order order : orders) {
+            if (order.getOrderId() == 0) continue;
+            incomeSeries.getData().add(new XYChart.Data<>(String.valueOf(order.getOrderId()), order.getTotal()));
+            commissionSeries.getData().add(new XYChart.Data<>(String.valueOf(order.getOrderId()), order.getCommission()));
+        }
+        barChart.getData().addAll(incomeSeries, commissionSeries);
+
+        root.getChildren().addAll(venuePieChart, barChart);
+        return root;
+    }
+
+    private ObservableList<PieChart.Data> computeVenueUtilization() {
+        List<Event> events = controller.getAllEvents();
+        Map<String, Integer> counts = new HashMap<>();
+        for (Event event : events) {
+            String venueName = event.getVenue();
+            counts.put(venueName, counts.getOrDefault(venueName, 0) + 1);
+        }
+        ObservableList<PieChart.Data> data = FXCollections.observableArrayList();
+        int total = events.size();
+        for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+            double percentage = (total > 0) ? (entry.getValue() * 100.0 / total) : 0;
+            data.add(new PieChart.Data(entry.getKey() + " (" + String.format("%.1f", percentage) + "%)", entry.getValue()));
+        }
+        return data;
     }
 
     public Parent getView() {
