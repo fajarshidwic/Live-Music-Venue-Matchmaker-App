@@ -18,7 +18,6 @@ public class DBUtil {
 
     public static void initializeDatabase() {
         try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
-            stmt.execute("DROP TABLE IF EXISTS Users");
             stmt.execute("DROP TABLE IF EXISTS Venues");
             stmt.execute("DROP TABLE IF EXISTS Requests");
             stmt.execute("DROP TABLE IF EXISTS Events");
@@ -35,7 +34,7 @@ public class DBUtil {
                     ");");
             stmt.execute("CREATE TABLE IF NOT EXISTS Venues (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "name TEXT NOT NULL, " +
+                    "name TEXT NOT NULL UNIQUE, " +
                     "capacity INTEGER, " +
                     "suitableFor TEXT, " +
                     "category TEXT, " +
@@ -52,10 +51,12 @@ public class DBUtil {
                     "duration INTEGER, " +
                     "targetAudience INTEGER, " +
                     "type TEXT, " +
-                    "category TEXT" +
+                    "category TEXT, " +
+                    "UNIQUE(client, title)" +
                     ");");
             stmt.execute("CREATE TABLE IF NOT EXISTS Events (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "requestId INTEGER, " +
                     "title TEXT, " +
                     "mainArtist TEXT, " +
                     "date TEXT, " +
@@ -72,13 +73,13 @@ public class DBUtil {
                     ");");
             stmt.execute("CREATE TABLE IF NOT EXISTS Orders (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "bookingId INTEGER, " +
+                    "bookingId INTEGER UNIQUE, " +
                     "commission REAL, " +
                     "total REAL" +
                     ");");
             stmt.execute("CREATE TABLE IF NOT EXISTS Clients (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    "clientName TEXT" +
+                    "clientName TEXT UNIQUE" +
                     ");");
 
             stmt.execute("INSERT OR IGNORE INTO Users (username, password, firstName, lastName, role) " +

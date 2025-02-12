@@ -145,6 +145,15 @@ public class DashboardView {
         VBox dashboardOverview = new VBox(20);
         dashboardOverview.setPadding(new Insets(20));
 
+        HBox autoMatchPane = new HBox();
+        autoMatchPane.setAlignment(Pos.CENTER);
+        Button autoMatchButton = new Button("Auto Match");
+        autoMatchButton.setStyle("-fx-font-size: 16px; -fx-padding: 10 20 10 20;");
+        autoMatchButton.setOnAction(e -> {
+            controller.autoMatch();
+        });
+        autoMatchPane.getChildren().add(autoMatchButton);
+
         HBox chartsPane = new HBox(20);
         chartsPane.setAlignment(Pos.CENTER);
         chartsPane.setPrefHeight(200);
@@ -215,7 +224,7 @@ public class DashboardView {
             GridPane.setVgrow(node, Priority.ALWAYS);
         }
 
-        dashboardOverview.getChildren().addAll(chartsPane, tablesGrid);
+        dashboardOverview.getChildren().addAll(autoMatchPane, chartsPane, tablesGrid);
         VBox.setVgrow(tablesGrid, Priority.ALWAYS);
 
         return dashboardOverview;

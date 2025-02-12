@@ -78,36 +78,7 @@ public class CSVImporter {
                     request.setCategory(category);
                     RequestDAO.addRequest(request);
 
-                    Client client = new Client();
-                    client.setClientName(clientName);
-                    ClientDAO.addClient(client);
 
-                    Event event = new Event();
-                    event.setTitle(title);
-                    event.setMainArtist(artist);
-                    event.setDate(date);
-                    event.setTime(time);
-                    List<Venue> venues = VenueDAO.getAllVenues();
-                    if (!venues.isEmpty()) {
-                        event.setVenue(venues.get(0).getName());
-                    } else {
-                        event.setVenue("N/A");
-                    }
-                    EventDAO.addEvent(event);
-
-                    Booking booking = new Booking();
-                    booking.setEventId(event.getEventId());
-                    booking.setVenueName(event.getVenue());
-                    booking.setDate(date);
-                    booking.setTime(time);
-                    booking.setDuration(duration);
-                    BookingDAO.addBooking(booking);
-
-                    Order order = new Order();
-                    order.setBookingId(booking.getBookingId());
-                    order.setCommission(0);
-                    order.setTotal(0);
-                    OrderDAO.addOrder(order);
                 } else {
                     System.out.println("Unexpected number of fields in requests CSV: " + fields.length);
                 }

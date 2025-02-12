@@ -1,6 +1,7 @@
 package com.example.livemusicvenuematchmakerapp.model;
 
 public class Request {
+    private int id;
     private String client;
     private String title;
     private String artist;
@@ -11,6 +12,8 @@ public class Request {
     private String type;
     private String category;
 
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
     public String getClient() {
         return client;
     }

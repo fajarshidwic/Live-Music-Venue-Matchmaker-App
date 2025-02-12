@@ -2,6 +2,7 @@ package com.example.livemusicvenuematchmakerapp.model;
 
 public class Event {
     private int eventId;
+    private int requestId;
     private String title;
     private String mainArtist;
     private String date;
@@ -14,6 +15,8 @@ public class Event {
     public void setEventId(int eventId) {
         this.eventId = eventId;
     }
+    public int getRequestId() { return requestId; }
+    public void setRequestId(int requestId) { this.requestId = requestId; }
     public String getTitle() {
         return title;
     }

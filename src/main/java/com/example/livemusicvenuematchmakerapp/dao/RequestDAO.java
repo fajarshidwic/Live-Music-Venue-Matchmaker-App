@@ -23,6 +23,26 @@ public class RequestDAO {
             pstmt.setString(8, request.getType());
             pstmt.setString(9, request.getCategory());
             int rowsAffected = pstmt.executeUpdate();
+            if (rowsAffected > 0) {
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery("SELECT last_insert_rowid()")) {
+                    if (rs.next()) {
+                        request.setId(rs.getInt(1));
+                    }
+                }
+            } else {
+                String selectQuery = "SELECT id FROM Requests WHERE client = ? AND title = ?";
+                try (PreparedStatement selectStmt = conn.prepareStatement(selectQuery)) {
+                    selectStmt.setString(1, request.getClient());
+                    selectStmt.setString(2, request.getTitle());
+                    try (ResultSet rs = selectStmt.executeQuery()) {
+                        if (rs.next()) {
+                            request.setId(rs.getInt("id"));
+                            rowsAffected = 1;
+                        }
+                    }
+                }
+            }
             return rowsAffected > 0;
         } catch(SQLException e) {
             e.printStackTrace();
@@ -38,6 +58,7 @@ public class RequestDAO {
              ResultSet rs = stmt.executeQuery(query)) {
             while(rs.next()){
                 Request request = new Request();
+                request.setId(rs.getInt("id"));
                 request.setClient(rs.getString("client"));
                 request.setTitle(rs.getString("title"));
                 request.setArtist(rs.getString("artist"));
