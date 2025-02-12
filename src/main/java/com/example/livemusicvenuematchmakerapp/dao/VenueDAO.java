@@ -8,14 +8,15 @@ import java.util.List;
 
 public class VenueDAO {
     public static boolean addVenue(Venue venue) {
-        String query = "INSERT INTO Venues (name, capacity, suitableFor, category, bookingPricePerHour) VALUES (?, ?, ?, ?, ?)";
+        String query = "INSERT OR IGNORE INTO Venues (name, capacity, suitableFor, category, venueType, bookingPricePerHour) VALUES (?,?,?,?,?,?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, venue.getName());
             pstmt.setInt(2, venue.getCapacity());
             pstmt.setString(3, venue.getSuitableFor());
             pstmt.setString(4, venue.getCategory());
-            pstmt.setDouble(5, venue.getBookingPricePerHour());
+            pstmt.setString(5, venue.getVenueType());
+            pstmt.setDouble(6, venue.getBookingPricePerHour());
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException e) {
@@ -37,6 +38,7 @@ public class VenueDAO {
                 venue.setCapacity(rs.getInt("capacity"));
                 venue.setSuitableFor(rs.getString("suitableFor"));
                 venue.setCategory(rs.getString("category"));
+                venue.setVenueType(rs.getString("venueType"));
                 venue.setBookingPricePerHour(rs.getDouble("bookingPricePerHour"));
                 venues.add(venue);
             }
@@ -59,6 +61,7 @@ public class VenueDAO {
                 venue.setCapacity(rs.getInt("capacity"));
                 venue.setSuitableFor(rs.getString("suitableFor"));
                 venue.setCategory(rs.getString("category"));
+                venue.setVenueType(rs.getString("venueType"));
                 venue.setBookingPricePerHour(rs.getDouble("bookingPricePerHour"));
                 return venue;
             }

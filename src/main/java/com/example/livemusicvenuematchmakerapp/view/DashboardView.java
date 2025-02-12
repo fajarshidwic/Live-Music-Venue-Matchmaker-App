@@ -95,7 +95,7 @@ public class DashboardView {
             }
         });
 
-        navContainer.getChildren().addAll(separator, btnDashboard, btnEvents, btnVenues,
+        navContainer.getChildren().addAll(separator, btnDashboard, btnEvents, btnVenues, btnRequests,
                 btnBooking, btnOrders, btnClients, btnData, btnAccount, btnReports, btnLogout);
 
         Region spacer = new Region();
@@ -174,14 +174,34 @@ public class DashboardView {
 
         VBox venuePreview = createTablePreview(
                 "Venues Preview",
-                new String[]{"Name", "Capacity", "Category"},
+                new String[][] { {"Name", "name"}, {"Capacity", "capacity"}, {"Category", "category"} },
                 FXCollections.observableArrayList(controller.getAllVenues())
         );
-        VBox requestPreview = createTablePreview("Requests Preview", new String[]{"Client", "Title", "Date"}, FXCollections.observableArrayList());
-        VBox eventPreview = createTablePreview("Events Preview", new String[]{"Event ID", "Title", "Date"}, FXCollections.observableArrayList());
-        VBox bookingPreview = createTablePreview("Bookings Preview", new String[]{"Booking ID", "Event ID", "Venue Name"}, FXCollections.observableArrayList());
-        VBox orderPreview = createTablePreview("Orders Preview", new String[]{"Order ID", "Booking ID", "Commission"}, FXCollections.observableArrayList());
-        VBox clientPreview = createTablePreview("Clients Preview", new String[]{"Client Name"}, FXCollections.observableArrayList());
+        VBox requestPreview = createTablePreview(
+                "Requests Preview",
+                new String[][] { {"Client", "client"}, {"Title", "title"}, {"Date", "date"} },
+                FXCollections.observableArrayList(controller.getAllRequests())
+        );
+        VBox eventPreview = createTablePreview(
+                "Events Preview",
+                new String[][] { {"Event ID", "eventId"}, {"Title", "title"}, {"Date", "date"} },
+                FXCollections.observableArrayList(controller.getAllEvents())
+        );
+        VBox bookingPreview = createTablePreview(
+                "Bookings Preview",
+                new String[][] { {"Booking ID", "bookingId"}, {"Event ID", "eventId"}, {"Venue Name", "venueName"} },
+                FXCollections.observableArrayList(controller.getAllBookings())
+        );
+        VBox orderPreview = createTablePreview(
+                "Orders Preview",
+                new String[][] { {"Order ID", "orderId"}, {"Booking ID", "bookingId"}, {"Commission", "commission"} },
+                FXCollections.observableArrayList(controller.getAllOrders())
+        );
+        VBox clientPreview = createTablePreview(
+                "Clients Preview",
+                new String[][] { {"Client Name", "clientName"} },
+                FXCollections.observableArrayList(controller.getAllClients())
+        );
 
         tablesGrid.add(venuePreview, 0, 0);
         tablesGrid.add(requestPreview, 1, 0);
@@ -202,7 +222,7 @@ public class DashboardView {
     }
 
 
-    private VBox createTablePreview(String headerText, String[] columns, ObservableList<?> data) {
+    private VBox createTablePreview(String headerText, String[][] columns, ObservableList<?> data) {
         VBox previewContainer = new VBox(5);
         previewContainer.setPadding(new Insets(10));
         previewContainer.setStyle("-fx-background-color: #ffffff; -fx-border-color: #dcdcdc; -fx-border-radius: 5; -fx-background-radius: 5;");
@@ -211,9 +231,11 @@ public class DashboardView {
         header.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
         TableView table = new TableView();
-        for (String colName : columns) {
-            TableColumn column = new TableColumn(colName);
-            column.setCellValueFactory(new PropertyValueFactory<>(colName.toLowerCase().replace(" ", "")));
+        for (String[] colDef : columns) {
+            String displayHeader = colDef[0];
+            String propertyKey = colDef[1];
+            TableColumn column = new TableColumn(displayHeader);
+            column.setCellValueFactory(new PropertyValueFactory<>(propertyKey));
             table.getColumns().add(column);
         }
         table.setItems(data);
@@ -244,7 +266,7 @@ public class DashboardView {
         TableColumn venueCol = new TableColumn("Venue");
         venueCol.setCellValueFactory(new PropertyValueFactory<>("venue"));
         table.getColumns().addAll(eventIdCol, titleCol, artistCol, dateCol, timeCol, venueCol);
-        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+        table.setItems(FXCollections.observableArrayList(controller.getAllEvents()));
 
         VBox.setVgrow(table, Priority.ALWAYS);
         container.getChildren().addAll(header, table);
@@ -267,22 +289,28 @@ public class DashboardView {
         txtSuitableFor.setPromptText("Suitable For");
         TextField txtCategory = new TextField();
         txtCategory.setPromptText("Category");
+        TextField txtVenueType = new TextField();
+        txtVenueType.setPromptText("Venue Type");
         TextField txtPrice = new TextField();
         txtPrice.setPromptText("Price / Hour");
         Button btnAddVenue = new Button("Add Venue");
         Label lblAddMsg = new Label();
-        addForm.getChildren().addAll(txtName, txtCapacity, txtSuitableFor, txtCategory, txtPrice, btnAddVenue);
+        addForm.getChildren().addAll(txtName, txtCapacity, txtSuitableFor, txtCategory, txtVenueType, txtPrice, btnAddVenue);
 
         TableView<Venue> tableView = new TableView<>();
         TableColumn<Venue, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getName()));
         TableColumn<Venue, Number> capacityCol = new TableColumn<>("Capacity");
         capacityCol.setCellValueFactory(cellData -> new SimpleIntegerProperty(cellData.getValue().getCapacity()));
+        TableColumn<Venue, String> suitableForCol = new TableColumn<>("Suitable For");
+        suitableForCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getSuitableFor()));
         TableColumn<Venue, String> categoryCol = new TableColumn<>("Category");
         categoryCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getCategory()));
+        TableColumn<Venue, String> venueTypeCol = new TableColumn<>("Venue Type");
+        venueTypeCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getVenueType()));
         TableColumn<Venue, Number> priceCol = new TableColumn<>("Price / Hour");
         priceCol.setCellValueFactory(cellData -> new SimpleDoubleProperty(cellData.getValue().getBookingPricePerHour()));
-        tableView.getColumns().addAll(nameCol, capacityCol, categoryCol, priceCol);
+        tableView.getColumns().addAll(nameCol, capacityCol, suitableForCol, categoryCol, venueTypeCol, priceCol);
 
         HBox searchPanel = new HBox(10);
         TextField txtSearch = new TextField();
@@ -300,6 +328,7 @@ public class DashboardView {
                 venue.setCapacity(capacity);
                 venue.setSuitableFor(txtSuitableFor.getText());
                 venue.setCategory(txtCategory.getText());
+                venue.setVenueType(txtVenueType.getText());
                 venue.setBookingPricePerHour(price);
                 boolean success = controller.addVenue(venue);
                 if(success) {
@@ -329,6 +358,7 @@ public class DashboardView {
         return venuePanel;
     }
 
+
     private Parent createRequestPage() {
         VBox container = new VBox(10);
         container.setPadding(new Insets(10));
@@ -355,7 +385,7 @@ public class DashboardView {
         TableColumn categoryCol = new TableColumn("Category");
         categoryCol.setCellValueFactory(new PropertyValueFactory<>("category"));
         table.getColumns().addAll(clientCol, titleCol, artistCol, dateCol, timeCol, durationCol, audienceCol, typeCol, categoryCol);
-        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+        table.setItems(FXCollections.observableArrayList(controller.getAllRequests()));
 
         VBox.setVgrow(table, Priority.ALWAYS);
         container.getChildren().addAll(header, table);
@@ -382,7 +412,7 @@ public class DashboardView {
         TableColumn durationCol = new TableColumn("Duration");
         durationCol.setCellValueFactory(new PropertyValueFactory<>("duration"));
         table.getColumns().addAll(bookingIdCol, eventIdCol, venueCol, dateCol, timeCol, durationCol);
-        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+        table.setItems(FXCollections.observableArrayList(controller.getAllBookings()));
 
         VBox.setVgrow(table, Priority.ALWAYS);
         container.getChildren().addAll(header, table);
@@ -405,7 +435,7 @@ public class DashboardView {
         TableColumn totalCol = new TableColumn("Total");
         totalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
         table.getColumns().addAll(orderIdCol, bookingIdCol, commissionCol, totalCol);
-        table.setItems(FXCollections.observableArrayList()); // empty placeholder
+        table.setItems(FXCollections.observableArrayList(controller.getAllOrders()));
 
         VBox.setVgrow(table, Priority.ALWAYS);
         container.getChildren().addAll(header, table);
@@ -422,7 +452,7 @@ public class DashboardView {
         TableColumn clientNameCol = new TableColumn("Client Name");
         clientNameCol.setCellValueFactory(new PropertyValueFactory<>("clientName"));
         table.getColumns().addAll(clientNameCol);
-        table.setItems(FXCollections.observableArrayList());
+        table.setItems(FXCollections.observableArrayList(controller.getAllClients()));
 
         VBox.setVgrow(table, Priority.ALWAYS);
         container.getChildren().addAll(header, table);
@@ -430,11 +460,42 @@ public class DashboardView {
     }
 
     private Parent createDataPage() {
-        Label label = new Label("Data Panel: Import CSVs and backup data here.");
-        StackPane pane = new StackPane(label);
-        pane.setStyle("-fx-background-color: #ecf0f1;");
-        return pane;
+        VBox container = new VBox(20);
+        container.setPadding(new Insets(20));
+        container.setAlignment(Pos.CENTER);
+
+        Label header = new Label("Data Import & Backup");
+        header.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+        Button importVenuesButton = new Button("Import Venues CSV");
+        Button importRequestsButton = new Button("Import Requests CSV");
+
+        Label statusLabel = new Label();
+
+        importVenuesButton.setOnAction(e -> {
+            try {
+                com.example.livemusicvenuematchmakerapp.util.CSVImporter.importVenues("src/main/resources/com/example/livemusicvenuematchmakerapp/csv/venues.csv");
+                statusLabel.setText("Venues imported successfully.");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                statusLabel.setText("Failed to import venues.");
+            }
+        });
+
+        importRequestsButton.setOnAction(e -> {
+            try {
+                com.example.livemusicvenuematchmakerapp.util.CSVImporter.importRequests("src/main/resources/com/example/livemusicvenuematchmakerapp/csv/requests.csv");
+                statusLabel.setText("Requests imported successfully.");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                statusLabel.setText("Failed to import requests.");
+            }
+        });
+
+        container.getChildren().addAll(header, importVenuesButton, importRequestsButton, statusLabel);
+        return container;
     }
+
 
     private Parent createAccountPage() {
         if ("manager".equalsIgnoreCase(loggedInUser.getRole())) {

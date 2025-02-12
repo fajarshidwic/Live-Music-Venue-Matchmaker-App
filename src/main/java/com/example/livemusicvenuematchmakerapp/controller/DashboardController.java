@@ -1,9 +1,8 @@
 package com.example.livemusicvenuematchmakerapp.controller;
 
-import com.example.livemusicvenuematchmakerapp.dao.UserDAO;
-import com.example.livemusicvenuematchmakerapp.dao.VenueDAO;
-import com.example.livemusicvenuematchmakerapp.model.User;
-import com.example.livemusicvenuematchmakerapp.model.Venue;
+import com.example.livemusicvenuematchmakerapp.dao.*;
+import com.example.livemusicvenuematchmakerapp.model.*;
+
 import java.util.List;
 
 public class DashboardController {
@@ -32,4 +31,19 @@ public class DashboardController {
     public boolean upgradeUser(String username) { return UserDAO.upgradeUser(username); }
 
     public boolean updateProfile(User user) { return UserDAO.updateProfile(user); }
+
+    public List<Request> getAllRequests() { return RequestDAO.getAllRequests(); }
+
+    public List<Event> getAllEvents() {
+        return EventDAO.getAllEvents();
+    }
+    public List<Booking> getAllBookings() {
+        return BookingDAO.getAllBookings();
+    }
+    public List<Order> getAllOrders() {
+        return OrderDAO.getAllOrders();
+    }
+    public List<Client> getAllClients() {
+        return ClientDAO.getAllClients();
+    }
 }

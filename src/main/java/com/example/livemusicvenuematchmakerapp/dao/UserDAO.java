@@ -32,7 +32,7 @@ public class UserDAO {
     }
 
     public static boolean createStaffUser(User user) {
-        String query = "INSERT INTO Users (username, password, firstName, lastName, role) VALUES (?, ?, ?, ?, ?)";
+        String query = "INSERT OR IGNORE INTO Users (username, password, firstName, lastName, role) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, user.getUsername());
